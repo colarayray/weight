@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>減肥助手</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #333333;
+      margin: 0;
+      padding: 0;
+      color: #1a1a1a;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #e9e9e9;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    .hidden {
+      display: none !important;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label { display: block; margin: 10px 0 5px; }
+    input, button, select {
+      width: 100%; padding: 8px; margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4caf50;
+      color: white; border: none; border-radius: 5px; cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover { background: #45a049; }
+    .btn-secondary {
+      background: #2196F3;
+    }
+    .btn-secondary:hover { background: #0b7dda; }
+    .btn-danger {
+      background: #f44336;
+      width: auto;
+      padding: 8px 16px;
+    }
+    .btn-danger:hover { background: #da190b; }
+    
+    .result {
+      margin-top: 20px; padding: 15px;
+      background: #e8f5e9; border-radius: 8px; display: none;
+    }
+    .chip {
+      display: inline-block; padding: 6px 12px; margin: 2px;
+      border: 1px solid #ccc; border-radius: 16px; cursor: pointer;
+      background: white; color: #1a1a1a;
+    }
+    .chip.active {
+      background: #4caf50; color: white; border-color: #4caf50;
+    }
+    #reportSection {
+      display: none; margin-top: 20px;
+      padding: 15px; background: #fff3cd;
+      border-radius: 8px;
+    }
+    .auth-msg {
+      color: red;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="login-section">
+    <h2 style="text-align: center;">減肥助手 - 會員登入</h2>
+    <label>Email</label>
+    <input type="email" id="email" placeholder="請輸入 Email">
+    <label>密碼</label>
+    <input type="password" id="password" placeholder="請輸入密碼 (至少6碼)">
+    
+    <button id="loginBtn">登入</button>
+    <button id="signUpBtn" class="btn-secondary">註冊</button>
+    <div class="auth-msg" id="authMessage"></div>
+  </div>
+
+  <div class="container hidden" id="app-section">
+    <div class="header-row">
+      <h2>減肥助手</h2>
+      <button id="logoutBtn" class="btn-danger">登出</button>
+    </div>
+    <p style="font-size: 14px; color: #666;">會員 UID: <span id="user-uid"></span></p>
+    <hr style="border: 0; border-top: 1px solid #ccc; margin-bottom: 20px;">
+
+    <form id="dietForm">
+      <label>年齡</label>
+      <input type="number" id="age" required>
+
+      <label>身高（公分）</label>
+      <input type="number" id="height" required>
+
+      <label>體重（公斤）</label>
+      <input type="number" id="weight" required>
+
+      <label>目前運動量</label>
+      <div id="activity">
+        <div class="chip">過低</div>
+        <div class="chip">剛好</div>
+        <div class="chip">過高</div>
+      </div>
+
+      <label>預期到達體重（公斤）</label>
+      <input type="number" id="goal" required>
+
+      <label>平日飲食種類（選填）</label>
+      <input type="text" id="diet" placeholder="例如：五穀類,炸物,水果">
+
+      <label>活動區域（選擇大學）</label>
+      <div id="university">
+        <div class="chip">靜宜大學</div>
+        <div class="chip">弘光科技大學</div>
+      </div>
+
+      <button type="submit" style="margin-top: 15px;">提交資料</button>
+    </form>
+
+    <div id="result" class="result"></div>
+
+    <button id="reportBtn" style="display:none; margin-top: 15px;" class="btn-secondary">成果回報（1 個月後回報）</button>
+
+    <div id="reportSection">
+      <h3>一個月成果回報</h3>
+      <label>目前體重</label>
+      <input type="number" id="currentWeight">
+
+      <label>運動量是否需要變更？</label>
+      <select id="changeActivity">
+        <option value="no">不需要</option>
+        <option value="increase">需要增加運動量</option>
+        <option value="decrease">需要減少運動量</option>
+      </select>
+
+      <button id="submitReport">提交回報</button>
+      <div id="reportResult" style="margin-top: 15px;"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    // ==========================================
+    // 這裡是你隨時可以替換的 Firebase Config 區塊
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyC7kw5dwvssDKYenv2CP0d8Th3uF1OuKoQ",
+        authDomain: "weight-fb5b2.firebaseapp.com",
+        projectId: "weight-fb5b2",
+        storageBucket: "weight-fb5b2.firebasestorage.app",
+        messagingSenderId: "256618987296",
+        appId: "1:256618987296:web:eccfbe78f19b8468862145"
+    };
+
+
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ==========================================
+    // 登入/註冊/登出 相關邏輯
+    // ==========================================
+    const loginSection = document.getElementById('login-section');
+    const appSection = document.getElementById('app-section');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const authMessage = document.getElementById('authMessage');
+    const userUidSpan = document.getElementById('user-uid');
+
+    // 註冊按鈕
+    document.getElementById('signUpBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .then((userCredential) => {
+          alert('註冊成功！系統將自動登入。');
+        })
+        .catch((error) => {
+          authMessage.innerText = "註冊失敗：" + error.message;
+        });
+    });
+
+    // 登入按鈕
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .catch((error) => {
+          authMessage.innerText = "登入失敗：" + error.message;
+        });
+    });
+
+    // 登出按鈕
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      signOut(auth).then(() => {
+        // 清空輸入框與隱藏報告區塊
+        emailInput.value = "";
+        passwordInput.value = "";
+        document.getElementById("result").style.display = "none";
+        document.getElementById("reportBtn").style.display = "none";
+        document.getElementById("reportSection").style.display = "none";
+        document.getElementById("dietForm").reset();
+      }).catch((error) => {
+        alert("登出失敗：" + error.message);
+      });
+    });
+
+    // 監聽登入狀態切換畫面
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // 已登入
+        userUidSpan.innerText = user.uid;
+        loginSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+      } else {
+        // 未登入
+        loginSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
+      }
+    });
+
+    // ==========================================
+    // 減肥助手核心邏輯 (原版直接移植)
+    // ==========================================
+    let selectedActivity = null;
+    let selectedUniv = null;
+    let originalWeight = 0;
+
+    document.querySelectorAll('#activity .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#activity .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedActivity = chip.textContent;
+      });
+    });
+
+    document.querySelectorAll('#university .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#university .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedUniv = chip.textContent;
+      });
+    });
+
+    /* --- 餐廳資料（加入推薦 / 不推薦） --- */
+    const restaurantDB = {
+      "靜宜大學": [
+        { name:"MITAKA 3e Café", address:"台中市沙鹿區東晉東路731號", good:["沙拉","無糖咖啡","雞胸輕食"], bad:["鬆餅","奶油飲品"] },
+        { name:"山頂囝仔湯包", address:"台中市沙鹿區北勢東路409號", good:["蒸餃","湯品"], bad:["湯包（較油）","小湯圓"] },
+        { name:"人間食解生態養生坊", address:"台中市沙鹿區福至路268巷161號", good:["有機飯","蔬菜盤"], bad:["甜點類"] },
+        { name:"覓覓基地 – 帆杋望海", address:"台中市沙鹿區榜文路88號", good:["輕食","無糖茶"], bad:["甜點","含糖飲料"] },
+        { name:"望景咖啡", address:"台中市沙鹿區望海路689號", good:["果汁(無糖)","簡餐(清淡)"], bad:["甜點","奶香咖啡"] }
+      ],
+      "弘光科技大學": [
+        { name:"MITAKA 3e Café (沙鹿後山)", address:"台中市沙鹿區東晉東路731號", good:["輕食","沙拉"], bad:["甜點"] },
+        { name:"星巴克 沙鹿台中店", address:"台中市沙鹿區", good:["沙拉","全麥三明治"], bad:["蛋糕","含糖飲料"] },
+        { name:"健康素食小館", address:"台中市沙鹿區", good:["蔬菜套餐","湯品"], bad:["油煎類"] },
+        { name:"輕食咖啡吧 沙鹿", address:"台中市沙鹿區", good:["沙拉","少油三明治"], bad:["甜點"] },
+        { name:"有機蔬食餐廳", address:"台中市沙鹿區", good:["蒸蔬菜","豆腐"], bad:["油炸豆腐"] }
+      ]
+    };
+
+    function getRandom(arr, n) {
+      const copy = arr.slice();
+      const result = [];
+      for (let i = 0; i < n && copy.length > 0; i++) {
+        const idx = Math.floor(Math.random() * copy.length);
+        result.push(copy[idx]);
+        copy.splice(idx, 1);
+      }
+      return result;
+    }
+
+    const exerciseDetails = {
+      "跑步":     { warm:5, work:20, rest:10, effect:"提升心肺耐力、促進脂肪燃燒" },
+      "游泳":     { warm:7, work:25, rest:8,  effect:"全身運動、強化肺活量" },
+      "打棒球":   { warm:10, work:30, rest:15, effect:"爆發力訓練、核心強化" },
+      "打排球":   { warm:8, work:22, rest:10, effect:"下肢力量與協調性提升" },
+      "打羽球":   { warm:6, work:18, rest:8,  effect:"高強度燃脂、敏捷度提升" },
+      "慢跑":     { warm:5, work:30, rest:10, effect:"穩定燃脂、減少心血管風險" },
+      "快走":     { warm:3, work:40, rest:5,  effect:"低衝擊燃脂、促進循環" },
+      "核心訓練": { warm:4, work:15, rest:6,  effect:"腹部穩定、改善姿勢" },
+      "啞鈴訓練": { warm:5, work:20, rest:10, effect:"增肌提高基礎代謝" },
+      "瑜伽":     { warm:5, work:35, rest:5,  effect:"放鬆減壓、提升柔軟度" }
+    };
+
+    function generateExercisePlan() {
+      const all = Object.keys(exerciseDetails);
+      const selected = getRandom(all, 2);
+      let html = "<strong>運動建議（含時間與效果）：</strong><br>";
+
+      selected.forEach(ex => {
+        const d = exerciseDetails[ex];
+        html += `
+          <div style="margin-top: 10px;">
+            <strong>${ex}</strong><br>
+            熱身：${d.warm} 分鐘<br>
+            運動：${d.work} 分鐘<br>
+            休息：${d.rest} 分鐘<br>
+            效果：${d.effect}
+          </div>`;
+      });
+
+      return html;
+    }
+
+    document.getElementById("dietForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const height = parseFloat(document.getElementById("height").value);
+      const weight = parseFloat(document.getElementById("weight").value);
+      originalWeight = weight;
+
+      if (!selectedActivity || !selectedUniv) {
+        alert("請選擇運動量與大學");
+        return;
+      }
+
+      const bmi = weight / ((height/100)**2);
+      let plan = `<strong>目前 BMI：</strong>${bmi.toFixed(1)}<br><br>`;
+
+      plan += "<strong>餐廳菜色推薦：</strong><br>";
+      const restaurants = restaurantDB[selectedUniv];
+      const rec = getRandom(restaurants, 3);
+
+      rec.forEach(r => {
+        plan += `
+        <div style="margin-top: 10px;">
+          <strong>${r.name}</strong> - ${r.address}<br>
+          <span style="color: green;">推薦：${r.good.join("、")}</span><br>
+          <span style="color: red;">不推薦：${r.bad.join("、")}</span>
+        </div>`;
+      });
+
+      plan += "<br><hr style='border: 0; border-top: 1px solid #ccc;'><br>" + generateExercisePlan();
+
+      document.getElementById("result").innerHTML = plan;
+      document.getElementById("result").style.display = "block";
+      document.getElementById("reportBtn").style.display = "block";
+    });
+
+    document.getElementById("reportBtn").addEventListener("click", () => {
+      document.getElementById("reportSection").style.display = "block";
+    });
+
+    document.getElementById("submitReport").addEventListener("click", () => {
+      const currentInput = document.getElementById("currentWeight").value;
+      if(!currentInput) {
+        alert("請輸入目前體重");
+        return;
+      }
+      const current = parseFloat(currentInput);
+      const change = document.getElementById("changeActivity").value;
+      let diff = originalWeight - current;
+      let weeklyLoss = diff / 4;
+
+      let text = `<strong>一個月共減重：</strong>${diff.toFixed(1)} 公斤<br>`;
+      text += `<strong>每週下降：</strong>${weeklyLoss.toFixed(2)} 公斤<br><br>`;
+
+      if (weeklyLoss < 0.5) {
+        text += "⬆ <span style='color: orange;'>下降幅度過低，可增加運動或調整飲食。</span><br><br>";
+      } else if (weeklyLoss > 1.2) {
+        text += "⚠ <span style='color: red;'>下降太快，不建議每週超過 1 公斤，請注意健康！</span><br><br>";  
+      } else {
+        text += "✔ <span style='color: green;'>體重下降屬於正常健康範圍。</span><br><br>";
+      }
+
+      if (change !== "no") {
+        text += "<strong>重新生成運動計畫（依變更後運動量）：</strong><br>";
+        text += generateExercisePlan();
+      }
+
+      document.getElementById("reportResult").innerHTML = text;
+    });
+
+  </script>
+</body>
+</html>
+
