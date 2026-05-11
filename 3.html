@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>減肥助手 - 會員資料版</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #333333;
+      margin: 0;
+      padding: 0;
+      color: #1a1a1a;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #e9e9e9;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    .hidden {
+      display: none !important;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label { display: block; margin: 10px 0 5px; font-weight: bold;}
+    input, button, select {
+      width: 100%; padding: 8px; margin-bottom: 12px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #4caf50;
+      color: white; border: none; border-radius: 5px; cursor: pointer;
+      font-size: 16px;
+      padding: 10px;
+    }
+    button:hover { background: #45a049; }
+    .btn-secondary { background: #2196F3; }
+    .btn-secondary:hover { background: #0b7dda; }
+    .btn-danger { background: #f44336; width: auto; padding: 8px 16px; }
+    .btn-danger:hover { background: #da190b; }
+    .btn-warning { background: #ff9800; }
+    .btn-warning:hover { background: #e68a00; }
+    
+    .result {
+      margin-top: 20px; padding: 15px;
+      background: #e8f5e9; border-radius: 8px; display: none;
+    }
+    .chip {
+      display: inline-block; padding: 6px 12px; margin: 2px;
+      border: 1px solid #ccc; border-radius: 16px; cursor: pointer;
+      background: white; color: #1a1a1a;
+    }
+    .chip.active {
+      background: #4caf50; color: white; border-color: #4caf50;
+    }
+    #reportSection {
+      display: none; margin-top: 20px;
+      padding: 15px; background: #fff3cd;
+      border-radius: 8px;
+    }
+    .auth-msg { color: red; font-size: 14px; text-align: center; }
+    .history-card {
+      background: white; padding: 15px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd;
+    }
+    .tab-btn {
+      flex: 1; margin: 0 5px; background: #ddd; color: #333;
+    }
+    .tab-btn.active {
+      background: #4caf50; color: white;
+    }
+    .tabs { display: flex; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 登入區塊 ================= -->
+  <div class="container" id="login-section">
+    <h2 style="text-align: center;">減肥助手 - 會員登入</h2>
+    <label>Email</label>
+    <input type="email" id="email" placeholder="請輸入 Email">
+    <label>密碼</label>
+    <input type="password" id="password" placeholder="請輸入密碼 (至少6碼)">
+    
+    <button id="loginBtn">登入</button>
+    <button id="signUpBtn" class="btn-secondary">註冊</button>
+    <div class="auth-msg" id="authMessage"></div>
+  </div>
+
+  <!-- ================= 建立個人檔案區塊 ================= -->
+  <div class="container hidden" id="profile-section">
+    <h2 style="text-align: center;">建立您的專屬檔案</h2>
+    <p style="text-align: center; color: #666;">首次登入，請先完善基本資料，方便我們為您規劃。</p>
+    <form id="profileForm">
+      <label>您的暱稱</label>
+      <input type="text" id="profName" required placeholder="例如：小明">
+      <label>年齡</label>
+      <input type="number" id="profAge" required>
+      <label>身高（公分）</label>
+      <input type="number" id="profHeight" required>
+      <label>目前體重（公斤）</label>
+      <input type="number" id="profWeight" required>
+      <button type="submit">儲存檔案並開始使用</button>
+    </form>
+  </div>
+
+  <!-- ================= 系統主畫面 ================= -->
+  <div class="container hidden" id="app-section">
+    <div class="header-row">
+      <h2>減肥助手 <span id="welcomeName" style="font-size: 18px; color: #4caf50;"></span></h2>
+      <button id="logoutBtn" class="btn-danger">登出</button>
+    </div>
+    <hr style="border: 0; border-top: 1px solid #ccc; margin-bottom: 15px;">
+
+    <!-- 頁籤切換 -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabNewPlan">建立新計畫</button>
+      <button class="tab-btn" id="tabHistory">我的歷史計畫</button>
+    </div>
+
+    <!-- 建立新計畫區塊 -->
+    <div id="newPlanArea">
+      <form id="dietForm">
+        <div style="display: flex; gap: 10px;">
+          <div style="flex:1;">
+            <label>年齡</label>
+            <input type="number" id="age" required>
+          </div>
+          <div style="flex:1;">
+            <label>身高(cm)</label>
+            <input type="number" id="height" required>
+          </div>
+          <div style="flex:1;">
+            <label>體重(kg)</label>
+            <input type="number" id="weight" required>
+          </div>
+        </div>
+
+        <label>目前運動量</label>
+        <div id="activity">
+          <div class="chip">過低</div>
+          <div class="chip">剛好</div>
+          <div class="chip">過高</div>
+        </div>
+
+        <label>預期到達體重（公斤）</label>
+        <input type="number" id="goal" required>
+
+        <label>平日飲食種類（選填）</label>
+        <input type="text" id="diet" placeholder="例如：五穀類,炸物,水果">
+
+        <label>活動區域（選擇大學）</label>
+        <div id="university">
+          <div class="chip">靜宜大學</div>
+          <div class="chip">弘光科技大學</div>
+        </div>
+
+        <button type="submit" style="margin-top: 15px;">產生減肥計畫</button>
+      </form>
+
+      <div id="result" class="result"></div>
+      
+      <!-- 儲存計畫按鈕 (初始隱藏) -->
+      <button id="savePlanBtn" class="btn-warning hidden" style="margin-top: 10px;">💾 將此計畫存入我的資料庫</button>
+
+      <button id="reportBtn" style="display:none; margin-top: 15px;" class="btn-secondary">成果回報（1 個月後回報）</button>
+
+      <div id="reportSection">
+        <h3>一個月成果回報</h3>
+        <label>目前體重</label>
+        <input type="number" id="currentWeight">
+        <label>運動量是否需要變更？</label>
+        <select id="changeActivity">
+          <option value="no">不需要</option>
+          <option value="increase">需要增加運動量</option>
+          <option value="decrease">需要減少運動量</option>
+        </select>
+        <button id="submitReport">提交回報</button>
+        <div id="reportResult" style="margin-top: 15px;"></div>
+      </div>
+    </div>
+
+    <!-- 歷史計畫區塊 -->
+    <div id="historyArea" class="hidden">
+      <h3>已儲存的計畫</h3>
+      <div id="historyContainer">
+        <p style="color: gray;">載入中...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase 模組載入 -->
+  <script type="module">
+    // 引入 Auth
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    // 引入 Firestore (資料庫)
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 你的 Firebase 設定
+    // const firebaseConfig = {
+    //   apiKey: "AIzaSyAIjatt6sZoOjg7FxB_v_eO6FE6zNVAq5M",
+    //   authDomain: "diet-app-login.firebaseapp.com",
+    //   projectId: "diet-app-login",
+    //   storageBucket: "diet-app-login.firebasestorage.app",
+    //   messagingSenderId: "34966125130",
+    //   appId: "1:34966125130:web:d29d2503e8185387a144b3"
+    // };
+   const firebaseConfig = {
+        apiKey: "AIzaSyC7kw5dwvssDKYenv2CP0d8Th3uF1OuKoQ",
+        authDomain: "weight-fb5b2.firebaseapp.com",
+        projectId: "weight-fb5b2",
+        storageBucket: "weight-fb5b2.firebasestorage.app",
+        messagingSenderId: "256618987296",
+        appId: "1:256618987296:web:eccfbe78f19b8468862145"
+    };
+    // 初始化
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ================= DOM 元素 =================
+    const loginSection = document.getElementById('login-section');
+    const profileSection = document.getElementById('profile-section');
+    const appSection = document.getElementById('app-section');
+    const authMessage = document.getElementById('authMessage');
+    
+    let currentHtmlPlan = ""; // 暫存產生的計畫內容，以便寫入資料庫
+
+    // ================= 1. 登入與註冊邏輯 =================
+    document.getElementById('signUpBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
+        .then(() => alert('註冊成功！系統將自動登入。'))
+        .catch((error) => authMessage.innerText = "註冊失敗：" + error.message);
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
+        .catch((error) => authMessage.innerText = "登入失敗：" + error.message);
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      signOut(auth).then(() => window.location.reload());
+    });
+
+    // ================= 2. 登入狀態監聽與資料庫檢查 =================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        loginSection.classList.add('hidden');
+        
+        // 檢查使用者是否已經建立過個人檔案
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          // 有資料 -> 進入系統主畫面
+          const userData = userSnap.data();
+          profileSection.classList.add('hidden');
+          appSection.classList.remove('hidden');
+          
+          // 自動帶入資料到表單
+          document.getElementById('welcomeName').innerText = `(${userData.name})`;
+          document.getElementById('age').value = userData.age;
+          document.getElementById('height').value = userData.height;
+          document.getElementById('weight').value = userData.weight;
+          
+          loadSavedPlans(user.uid); // 載入歷史紀錄
+        } else {
+          // 沒資料 -> 顯示建立檔案畫面
+          profileSection.classList.remove('hidden');
+          appSection.classList.add('hidden');
+        }
+      } else {
+        loginSection.classList.remove('hidden');
+        profileSection.classList.add('hidden');
+        appSection.classList.add('hidden');
+      }
+    });
+
+    // ================= 3. 儲存個人檔案 =================
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if(!user) return;
+
+      const profileData = {
+        name: document.getElementById('profName').value,
+        age: parseInt(document.getElementById('profAge').value),
+        height: parseFloat(document.getElementById('profHeight').value),
+        weight: parseFloat(document.getElementById('profWeight').value),
+        createdAt: new Date().getTime()
+      };
+
+      try {
+        // 將資料寫入 Firestore: users/{uid}
+        await setDoc(doc(db, "users", user.uid), profileData);
+        alert("個人檔案建立成功！");
+        // 重新整理讓 onAuthStateChanged 重新導向主畫面
+        window.location.reload(); 
+      } catch (error) {
+        alert("儲存失敗：" + error.message);
+      }
+    });
+
+    // ================= 4. 系統核心：產生計畫與儲存 =================
+    let selectedActivity = null;
+    let selectedUniv = null;
+    let originalWeight = 0;
+
+    document.querySelectorAll('#activity .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#activity .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedActivity = chip.textContent;
+      });
+    });
+
+    document.querySelectorAll('#university .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#university .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedUniv = chip.textContent;
+      });
+    });
+
+    // --- 本地資料庫 (暫代 AI) ---
+    const restaurantDB = {
+      "靜宜大學": [{ name:"MITAKA 3e Café", good:"沙拉, 無糖咖啡", bad:"鬆餅" }, { name:"山頂囝仔湯包", good:"蒸餃, 湯品", bad:"湯包" }],
+      "弘光科技大學": [{ name:"星巴克 沙鹿店", good:"沙拉, 全麥", bad:"蛋糕" }, { name:"健康素食小館", good:"蔬菜套餐", bad:"油煎類" }]
+    };
+    const exerciseDetails = [
+      { name:"跑步", text:"熱身5分, 運動20分, 休息10分。效果: 提升心肺" },
+      { name:"核心訓練", text:"熱身4分, 運動15分, 休息6分。效果: 腹部穩定" },
+      { name:"瑜伽", text:"熱身5分, 運動35分, 休息5分。效果: 放鬆減壓" }
+    ];
+
+    document.getElementById("dietForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      const height = parseFloat(document.getElementById("height").value);
+      const weight = parseFloat(document.getElementById("weight").value);
+      originalWeight = weight;
+
+      if (!selectedActivity || !selectedUniv) {
+        alert("請選擇運動量與大學"); return;
+      }
+
+      // 產生本地的 HTML 計畫
+      const bmi = (weight / ((height/100)**2)).toFixed(1);
+      const r = restaurantDB[selectedUniv][Math.floor(Math.random() * restaurantDB[selectedUniv].length)];
+      const ex1 = exerciseDetails[Math.floor(Math.random() * exerciseDetails.length)];
+      
+      currentHtmlPlan = `
+        <strong>目前 BMI：</strong>${bmi}<br><br>
+        <strong>餐廳推薦 (${selectedUniv})：</strong><br>
+        📍 ${r.name} (推薦: ${r.good} | 避開: ${r.bad})<br><br>
+        <strong>運動建議：</strong><br>
+        💪 ${ex1.name} - ${ex1.text}
+      `;
+
+      document.getElementById("result").innerHTML = currentHtmlPlan;
+      document.getElementById("result").style.display = "block";
+      document.getElementById("reportBtn").style.display = "block";
+      document.getElementById("savePlanBtn").classList.remove('hidden'); // 顯示儲存按鈕
+    });
+
+    // --- 儲存計畫到資料庫 ---
+    document.getElementById('savePlanBtn').addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if (!user || !currentHtmlPlan) return;
+
+      try {
+        // 存入 users/{uid}/plans/{隨機ID}
+        await addDoc(collection(db, "users", user.uid, "plans"), {
+          planContent: currentHtmlPlan,
+          timestamp: new Date().getTime(),
+          dateString: new Date().toLocaleDateString()
+        });
+        alert("計畫已成功儲存！");
+        document.getElementById('savePlanBtn').classList.add('hidden');
+        loadSavedPlans(user.uid); // 重新載入歷史列表
+      } catch (error) {
+        alert("儲存計畫失敗：" + error.message);
+      }
+    });
+
+    // ================= 5. 頁籤切換與歷史紀錄 =================
+    const tabNewPlan = document.getElementById('tabNewPlan');
+    const tabHistory = document.getElementById('tabHistory');
+    const newPlanArea = document.getElementById('newPlanArea');
+    const historyArea = document.getElementById('historyArea');
+
+    tabNewPlan.addEventListener('click', () => {
+      tabNewPlan.classList.add('active'); tabHistory.classList.remove('active');
+      newPlanArea.classList.remove('hidden'); historyArea.classList.add('hidden');
+    });
+
+    tabHistory.addEventListener('click', () => {
+      tabHistory.classList.add('active'); tabNewPlan.classList.remove('active');
+      historyArea.classList.remove('hidden'); newPlanArea.classList.add('hidden');
+    });
+
+    async function loadSavedPlans(uid) {
+      const container = document.getElementById('historyContainer');
+      container.innerHTML = "載入中...";
+      try {
+        const querySnapshot = await getDocs(collection(db, "users", uid, "plans"));
+        let plans = [];
+        querySnapshot.forEach((doc) => plans.push({ id: doc.id, ...doc.data() }));
+        
+        // 依照時間排序 (新的在最上面)
+        plans.sort((a, b) => b.timestamp - a.timestamp);
+
+        if (plans.length === 0) {
+          container.innerHTML = "<p style='color: gray;'>您目前還沒有儲存的計畫。</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        plans.forEach(plan => {
+          container.innerHTML += `
+            <div class="history-card">
+              <span style="font-size: 12px; color: gray;">建立日期：${plan.dateString}</span>
+              <div style="margin-top: 10px;">${plan.planContent}</div>
+            </div>
+          `;
+        });
+      } catch (error) {
+        container.innerHTML = "載入歷史紀錄失敗：" + error.message;
+      }
+    }
+
+  </script>
+</body>
+</html>
+
