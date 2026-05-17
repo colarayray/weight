@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>健康助手</title>
+
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #333333;
+      margin: 0;
+      padding: 0;
+      color: #1a1a1a;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #e9e9e9;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    .hidden {
+      display: none !important;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label { display: block; margin: 10px 0 5px; font-weight: bold;}
+    input, button, select {
+      width: 100%; padding: 8px; margin-bottom: 12px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #4caf50;
+      color: white; border: none; border-radius: 5px; cursor: pointer;
+      font-size: 16px;
+      padding: 10px;
+    }
+    button:hover { background: #45a049; }
+    .btn-secondary { background: #2196F3; }
+    .btn-secondary:hover { background: #0b7dda; }
+    .btn-danger { background: #f44336; width: auto; padding: 8px 16px; }
+    .btn-danger:hover { background: #da190b; }
+    .btn-warning { background: #ff9800; }
+    .btn-warning:hover { background: #e68a00; }
+    
+    .result {
+      margin-top: 20px; padding: 15px;
+      background: #e8f5e9; border-radius: 8px; display: none;
+      line-height: 1.6;
+    }
+    .chip {
+      display: inline-block; padding: 6px 12px; margin: 2px;
+      border: 1px solid #ccc; border-radius: 16px; cursor: pointer;
+      background: white; color: #1a1a1a;
+    }
+    .chip.active {
+      background: #4caf50; color: white; border-color: #4caf50;
+    }
+    .auth-msg { color: red; font-size: 14px; text-align: center; }
+    
+    /* 歷史計畫卡片樣式 */
+    .history-card {
+      background: white; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .plan-header {
+      display: flex; justify-content: space-between; align-items: center; 
+      border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;
+    }
+    .tab-btn {
+      flex: 1; margin: 0 5px; background: #ddd; color: #333; transition: 0.3s;
+    }
+    .tab-btn.active {
+      background: #4caf50; color: white; font-weight: bold;
+    }
+    .tabs { display: flex; margin-bottom: 20px; }
+
+    /* 成果回報獨立樣式 */
+    .report-item {
+      background: #fff; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 6px;
+      position: relative;
+    }
+    .delete-report-btn {
+      position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 16px; padding: 0; width: auto; color: red;
+    }
+    /* 運動與餐廳項目的專屬樣式 */
+    .exercise-item {
+      background: #fff; border-left: 4px solid #4caf50; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .restaurant-item {
+      background: #fff; border-left: 4px solid #ff9800; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 登入區塊 ================= -->
+  <div class="container" id="login-section">
+    <h2 style="text-align: center;">健康助手 - 登入</h2>
+    <label>Email</label>
+    <input type="email" id="email" placeholder="請輸入 Email">
+    <label>密碼</label>
+    <input type="password" id="password" placeholder="請輸入密碼 (至少6碼)">
+    
+    <button id="loginBtn">登入</button>
+    <button id="signUpBtn" class="btn-secondary">註冊</button>
+    <div class="auth-msg" id="authMessage"></div>
+  </div>
+
+  <!-- ================= 建立個人檔案區塊 ================= -->
+  <div class="container hidden" id="profile-section">
+    <div class="header-row">
+      <h2>建立您的專屬檔案</h2>
+      <button id="logoutFromProfileBtn" class="btn-danger">返回登入</button>
+    </div>
+    <p style="text-align: center; color: #666;">首次登入，請先完善基本資料，方便我們為您規劃。</p>
+    <form id="profileForm">
+      <label>您的暱稱</label>
+      <input type="text" id="profName" required placeholder="例如：小明">
+      <label>年齡</label>
+      <input type="number" id="profAge" required>
+      <label>身高（公分）</label>
+      <input type="number" id="profHeight" required>
+      <label>目前體重（公斤）</label>
+      <input type="number" id="profWeight" required>
+      <button type="submit">儲存檔案並開始使用</button>
+    </form>
+  </div>
+
+  <!-- ================= 系統主畫面 ================= -->
+  <div class="container hidden" id="app-section">
+    <div class="header-row">
+      <h2>健康助手 <span id="welcomeName" style="font-size: 18px; color: #4caf50;"></span></h2>
+      <button id="logoutBtn" class="btn-danger">登出</button>
+    </div>
+    <hr style="border: 0; border-top: 1px solid #ccc; margin-bottom: 15px;">
+
+    <!-- 頁籤切換 -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabNewPlan">建立新計畫</button>
+      <button class="tab-btn" id="tabHistory">我的歷史計畫</button>
+    </div>
+
+    <!-- 建立新計畫區塊 -->
+    <div id="newPlanArea">
+      <form id="dietForm">
+        <label>您的目標</label>
+        <div id="planGoal" style="margin-bottom: 15px;">
+          <div class="chip active">減肥</div>
+          <div class="chip">健身</div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <div style="flex:1;"><label>年齡</label><input type="number" id="age" required></div>
+          <div style="flex:1;"><label>身高(cm)</label><input type="number" id="height" required></div>
+          <div style="flex:1;"><label>體重(kg)</label><input type="number" id="weight" required></div>
+        </div>
+
+        <label>目前運動量</label>
+        <div id="activity">
+          <div class="chip">過低</div><div class="chip">剛好</div><div class="chip">過高</div>
+        </div>
+
+        <label>預期到達體重（公斤）</label>
+        <input type="number" id="goal" required>
+
+        <button type="submit" style="margin-top: 15px;">產生專屬健康計畫</button>
+      </form>
+
+      <div id="result" class="result"></div>
+      <button id="savePlanBtn" class="btn-warning hidden" style="margin-top: 10px;">將此計畫存入我的資料庫</button>
+    </div>
+
+    <!-- 歷史計畫區塊 -->
+    <div id="historyArea" class="hidden">
+      <h3>已儲存的計畫列表</h3>
+      <p style="color: #666; font-size: 14px;">您可以在卡片上方直接新增各階段的成果回報，並於展開後查看所有紀錄。</p>
+      <div id="historyContainer"><p style="color: gray;">載入中...</p></div>
+    </div>
+  </div>
+
+  <!-- Firebase 模組載入 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+   const firebaseConfig = {
+        apiKey: "AIzaSyC7kw5dwvssDKYenv2CP0d8Th3uF1OuKoQ",
+        authDomain: "weight-fb5b2.firebaseapp.com",
+        projectId: "weight-fb5b2",
+        storageBucket: "weight-fb5b2.firebasestorage.app",
+        messagingSenderId: "256618987296",
+        appId: "1:256618987296:web:eccfbe78f19b8468862145"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    setPersistence(auth, browserSessionPersistence);
+
+    const loginSection = document.getElementById('login-section');
+    const profileSection = document.getElementById('profile-section');
+    const appSection = document.getElementById('app-section');
+    const authMessage = document.getElementById('authMessage');
+    let currentHtmlPlan = ""; 
+
+    document.getElementById('signUpBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
+        .then(() => alert('註冊成功！系統將自動登入。'))
+        .catch(err => authMessage.innerText = "註冊失敗：" + err.message);
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      authMessage.innerText = "";
+      signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
+        .catch(err => authMessage.innerText = "登入失敗：" + err.message);
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth).then(() => window.location.reload()));
+    document.getElementById('logoutFromProfileBtn').addEventListener('click', () => signOut(auth).then(() => window.location.reload()));
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        loginSection.classList.add('hidden');
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          profileSection.classList.add('hidden');
+          appSection.classList.remove('hidden');
+          document.getElementById('welcomeName').innerText = `(${userData.name})`;
+          document.getElementById('age').value = userData.age;
+          document.getElementById('height').value = userData.height;
+          document.getElementById('weight').value = userData.weight;
+          loadSavedPlans(user.uid);
+        } else {
+          profileSection.classList.remove('hidden');
+          appSection.classList.add('hidden');
+        }
+      } else {
+        loginSection.classList.remove('hidden');
+        profileSection.classList.add('hidden');
+        appSection.classList.add('hidden');
+      }
+    });
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if(!user) return;
+      const profileData = {
+        name: document.getElementById('profName').value,
+        age: parseInt(document.getElementById('profAge').value),
+        height: parseFloat(document.getElementById('profHeight').value),
+        weight: parseFloat(document.getElementById('profWeight').value),
+        createdAt: new Date().getTime()
+      };
+      try {
+        await setDoc(doc(db, "users", user.uid), profileData);
+        alert("個人檔案建立成功！"); window.location.reload(); 
+      } catch (error) { alert("儲存失敗：" + error.message); }
+    });
+
+    let selectedActivity = null;
+    let selectedGoal = "減肥"; 
+    let originalWeight = 0;
+
+    document.querySelectorAll('#activity .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#activity .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active'); selectedActivity = chip.textContent;
+      });
+    });
+    document.querySelectorAll('#planGoal .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#planGoal .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active'); selectedGoal = chip.textContent;
+      });
+    });
+
+    // ================= 內建備用資料庫 (Fallback Dictionary) =================
+    const localExercisesRules = {
+      "減肥_正常": [
+        { name:"跳繩", text:"跳繩 10 分鐘，等於慢跑 30 分鐘，長期訓練能降低血壓，每週 3–4 次。每次 20–25 分鐘。" },
+        { name:"波比跳", text:"結合深蹲、伏地挺身與向上跳躍的全身性高消耗動作，能極速拉高心率，每次執行 4–5 組（每組 10 次）。" },
+        { name:"有氧拳擊", text:"對著沙包進行刺拳、直拳、勾拳組合，搭配雙腳前後輕快彈跳，算激烈運動，每週 3–4 次，每次 15–20 分鐘。" }
+      ],
+      "健身_正常": [
+        { name:"弓步蹲", text:"雙腳前後張開下蹲，左右腿輪流交換，專注鍛鍊臀部與大腿線條。" },
+        { name:"登山者式", text:"雙手撐地呈伏地挺身姿勢，雙腿像跑步一樣輪流快速向胸前收膝。" },
+        { name:"反向撐體", text:"雙手反向撐在穩固邊緣，身體下沉再推起，專治手臂拜拜袖。" }
+      ],
+      "減肥_過重": [
+        { name:"慢跑", text:"在客廳鋪上瑜珈墊或軟墊，放鬆雙肩、保持膝蓋微彎，原地進行小步伐、高步頻的微幅跑步。" },
+        { name:"「踏步式」跳繩", text:"放慢甩繩速度。繩子甩下來時，左腳先抬起跨過，右腳隨後跨過。雙腳不同時離地，減少消除對關節的負擔。" }
+      ],
+      "健身_過重": [
+        { name:"橋式", text:"平躺於床墊或地板，雙腳屈膝踩地，由臀部發力將核心與大腿抬起呈一直線，強化臀肌與下背。" },
+        { name:"坐姿抬腿撐體", text:"坐在椅子上，將單腳打直抬高與地面平行，腳尖勾起，腳踝處可停留 5–10 秒再放下，強力保護膝關節。" },
+        { name:"跪姿鳥狗式", text:"雙手雙膝撐地，一隻手向前伸直的同時，對側腳向後踢直，鍛鍊全身平衡與核心穩定。" }
+      ],
+      "減肥_過輕": [
+        { name:"阻力訓練", text:"進行啞鈴深蹲、器械推舉等輕度負重訓練以刺激肌肉生長，增加肌肉量與提升骨密度。" },
+        { name:"低強度有氧", text:"每週進行2-3次瑜珈、皮拉提斯或快走，避免高消耗的長跑。" }
+      ],
+      "健身_過輕": [
+        { name:"阻力訓練", text:"進行啞鈴深蹲、器械推舉等輕度負重訓練以刺激肌肉生長，增加肌肉量與提升骨密度。" },
+        { name:"低強度有氧", text:"每週進行2-3次瑜珈、皮拉提斯或快走，避免高消耗的長跑。" }
+      ]
+    };
+
+    // 【全新改版：支援 name, good, bad 的餐廳推薦區】
+    const localRestaurantRules = {
+      "減肥_正常": [
+        { name:"星巴克 沙鹿店", good:"生菜沙拉, 全麥三明治, 黑咖啡", bad:"各式含糖星冰樂, 蛋糕甜點" },
+        { name:"香草輕食館 choices", good:"舒肥嫩雞沙拉, 和風醬", bad:"臘腸義大利麵, 奶油白醬系列" }
+      ],
+      "健身_正常": [
+        { name:"香草輕食館 choices", good:"清炒嫩雞義大利麵 (優質碳水與蛋白質)", bad:"臘腸義大利麵, 炸物拼盤" },
+        { name:"春玉食堂 營養早午餐", good:"蔬菜捲餅(加鮪魚), 蔥抓餅加蛋", bad:"香酥薯餅, 培根" }
+      ],
+      "減肥_過重": [
+        { name:"健康素食小館", good:"純蔬菜套餐, 涼拌豆腐, 燙青菜", bad:"油煎類, 素肉加工食品" },
+        { name:"MITAKA 3e Café", good:"鮮蔬沙拉, 原味無糖咖啡", bad:"焦糖鬆餅, 鮮奶油飲品" }
+      ],
+      "健身_過重": [
+        { name:"健康素食小館", good:"滷豆干, 燙青菜, 十穀米半碗", bad:"炸豆皮, 炒麵" },
+        { name:"星巴克 沙鹿店", good:"烤雞生吐司煎餅, 無糖那堤", bad:"巧克力司康, 蛋糕" }
+      ],
+      "減肥_過輕": [
+        { name:"春玉食堂 營養早午餐", good:"蔬菜捲餅(鮪魚), 無糖豆漿", bad:"香酥薯餅, 炸雞塊" },
+        { name:"MITAKA 3e Café", good:"嫩雞沙拉, 熱拿鐵", bad:"糖漿類甜膩飲品" }
+      ],
+      "健身_過輕": [
+        { name:"山頂囝仔湯包", good:"蒸餃(可多點幾籠補充熱量), 瘦肉湯品", bad:"只吃燙青菜 (熱量與蛋白質絕對不足)" },
+        { name:"春玉食堂 營養早午餐", good:"雙份肉蛋吐司, 全脂鮮奶茶", bad:"單吃果醬吐司 (缺乏蛋白質)" }
+      ]
+    };
+
+    // ================= 規則運算 =================
+    document.getElementById("dietForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      const height = parseFloat(document.getElementById("height").value);
+      const weight = parseFloat(document.getElementById("weight").value);
+      originalWeight = weight;
+
+      if (!selectedActivity) {
+        alert("請選擇「運動量」！"); return;
+      }
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "<strong>⏳ 正在計算專業規劃，請稍候...</strong>";
+      resultDiv.style.display = "block";
+      document.getElementById("savePlanBtn").classList.add('hidden'); 
+
+      // 1. BMI 計算
+      const bmi = weight / Math.pow(height / 100, 2);
+      let bmiCategory = "";
+      if (bmi < 18.5) bmiCategory = "過輕";
+      else if (bmi < 24) bmiCategory = "正常";
+      else bmiCategory = "過重";
+
+      // 2. 查表：從資料庫 或 在地備用檔案 抓取推薦清單
+      const ruleDocId = `${selectedGoal}_${bmiCategory}`;
+      let exerciseAdvice = "";
+      let dietAdvice = "";
+      let recommendedExercises = [];
+      let recommendedRestaurants = [];
+
+      try {
+        const ruleRef = doc(db, "system_rules", ruleDocId);
+        const ruleSnap = await getDoc(ruleRef);
+
+        const fallbackData = {
+          exerciseAdvice: "為您推薦以下專屬運動清單：",
+          dietAdvice: (selectedGoal === "減肥") ? "建議控制熱量，多攝取原型食物。" : "建議攝取優質高蛋白與適當碳水化合物。",
+          exercises: localExercisesRules[ruleDocId] || [],
+          restaurants: localRestaurantRules[ruleDocId] || []
+        };
+
+        if (ruleSnap.exists()) {
+          const ruleData = ruleSnap.data();
+          exerciseAdvice = ruleData.exerciseAdvice || fallbackData.exerciseAdvice;
+          dietAdvice = ruleData.dietAdvice || fallbackData.dietAdvice;
+          
+          recommendedExercises = (ruleData.recommendedExercises && ruleData.recommendedExercises.length > 0) 
+                                ? ruleData.recommendedExercises : fallbackData.exercises;
+                                
+          recommendedRestaurants = (ruleData.recommendedRestaurants && ruleData.recommendedRestaurants.length > 0) 
+                                ? ruleData.recommendedRestaurants : fallbackData.restaurants;
+        } else {
+          exerciseAdvice = fallbackData.exerciseAdvice;
+          dietAdvice = fallbackData.dietAdvice;
+          recommendedExercises = fallbackData.exercises;
+          recommendedRestaurants = fallbackData.restaurants;
+        }
+      } catch (error) {
+        exerciseAdvice = "為您推薦以下運動："; dietAdvice = "建議均衡飲食。";
+        recommendedExercises = localExercisesRules[ruleDocId] || [];
+        recommendedRestaurants = localRestaurantRules[ruleDocId] || [];
+      }
+
+      // 將運動清單陣列轉成 HTML
+      let exerciseHtmlList = "";
+      if (recommendedExercises.length > 0) {
+        recommendedExercises.forEach(ex => {
+           exerciseHtmlList += `<div class="exercise-item"><strong>🏃 ${ex.name}：</strong><br>${ex.text}</div>`;
+        });
+      } else {
+        exerciseHtmlList = "<div>暫無特定推薦動作，請依個人體能活動。</div>";
+      }
+
+      // 【全新升級】將餐廳清單陣列轉成 ✅推薦 ❌避開 HTML 格式
+      let restaurantHtmlList = "";
+      if (recommendedRestaurants.length > 0) {
+        recommendedRestaurants.forEach(res => {
+           if (res.good !== undefined || res.bad !== undefined) {
+               // 支援最新的 good / bad 格式
+               restaurantHtmlList += `
+                 <div class="restaurant-item">
+                   <strong>🍽️ ${res.name}</strong><br>
+                   ✅ <span style="color:#2e7d32; font-weight:bold;">推薦：</span>${res.good || '無特別推薦'}<br>
+                   ❌ <span style="color:#c62828; font-weight:bold;">避開：</span>${res.bad || '無特別避開'}
+                 </div>`;
+           } else {
+               // 相容舊的 text 格式
+               restaurantHtmlList += `<div class="restaurant-item"><strong>🍽️ ${res.name}</strong><br>💡 點餐攻略：${res.text || '無'}</div>`;
+           }
+        });
+      } else {
+        restaurantHtmlList = "<div>暫無特定推薦餐廳，請依通用建議選擇。</div>";
+      }
+
+      // 3. 組合最終計畫 HTML
+      currentHtmlPlan = `
+        <h3 style="color: #2196F3; margin-top: 0;">📋 您的專屬 ${selectedGoal} 計畫</h3>
+        <strong>目前 BMI：</strong>${bmi.toFixed(1)} (${bmiCategory})<br><br>
+        
+        <strong>⭐ 整體運動建議：</strong><br>
+        ${exerciseAdvice}<br><br>
+        <strong>🎯 為您挑選的具體運動清單：</strong><br>
+        ${exerciseHtmlList}<br>
+        
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <strong>⭐ 整體飲食建議：</strong><br>
+        ${dietAdvice}<br><br>
+        <strong>🍽️ 推薦外食餐廳與攻略：</strong><br>
+        ${restaurantHtmlList}
+      `;
+
+      resultDiv.innerHTML = currentHtmlPlan;
+      document.getElementById("savePlanBtn").classList.remove('hidden'); 
+    });
+
+    // ================= 儲存與歷史紀錄 =================
+    document.getElementById('savePlanBtn').addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if (!user || !currentHtmlPlan) return;
+      const now = new Date();
+      try {
+        await addDoc(collection(db, "users", user.uid, "plans"), {
+          name: `${selectedGoal}計畫 - ${now.toLocaleDateString()}`, 
+          planContent: currentHtmlPlan,
+          originalWeight: originalWeight, 
+          reports: [], 
+          timestamp: now.getTime(),
+          dateString: now.toLocaleDateString()
+        });
+        alert("計畫已成功儲存！請至「我的歷史計畫」查看與管理。");
+        document.getElementById('savePlanBtn').classList.add('hidden');
+        loadSavedPlans(user.uid); 
+      } catch (error) { alert("儲存計畫失敗：" + error.message); }
+    });
+
+    const tabNewPlan = document.getElementById('tabNewPlan');
+    const tabHistory = document.getElementById('tabHistory');
+    const newPlanArea = document.getElementById('newPlanArea');
+    const historyArea = document.getElementById('historyArea');
+
+    tabNewPlan.addEventListener('click', () => {
+      tabNewPlan.classList.add('active'); tabHistory.classList.remove('active');
+      newPlanArea.classList.remove('hidden'); historyArea.classList.add('hidden');
+    });
+    tabHistory.addEventListener('click', () => {
+      tabHistory.classList.add('active'); tabNewPlan.classList.remove('active');
+      historyArea.classList.remove('hidden'); newPlanArea.classList.add('hidden');
+    });
+
+    async function loadSavedPlans(uid) {
+      const container = document.getElementById('historyContainer');
+      container.innerHTML = "載入中...";
+      try {
+        const querySnapshot = await getDocs(collection(db, "users", uid, "plans"));
+        let plans = [];
+        querySnapshot.forEach((doc) => plans.push({ id: doc.id, ...doc.data() }));
+        plans.sort((a, b) => b.timestamp - a.timestamp);
+
+        if (plans.length === 0) {
+          container.innerHTML = "<p style='color: gray;'>您目前還沒有儲存的計畫。</p>"; return;
+        }
+
+        container.innerHTML = "";
+        plans.forEach(plan => {
+          const displayName = plan.name || `健康計畫 - ${plan.dateString}`;
+          const safeWeight = plan.originalWeight || 0; 
+          const reportsArray = plan.reports || []; 
+          
+          let reportsHtml = "";
+          if (reportsArray.length > 0) {
+            reportsHtml = `<h4 style="margin: 0 0 10px 0; color: #2e7d32;">歷史成果回報紀錄</h4>`;
+            reportsArray.forEach(rpt => {
+              reportsHtml += `
+                <div class="report-item">
+                  <button class="delete-report-btn" data-plan-id="${plan.id}" data-report-id="${rpt.id}" title="刪除此紀錄">❌</button>
+                  <strong>[${rpt.timeLabel}]</strong> 紀錄於 ${rpt.dateString}<br>
+                  初始：${safeWeight} kg ➔ 本次：${rpt.currentWeight} kg (差異：${rpt.diff > 0 ? '+'+rpt.diff : rpt.diff} kg)<br>
+                  <span style="font-size: 13px; color: #555;">運動變更需求：${rpt.changeActivity === 'no' ? '無' : (rpt.changeActivity === 'increase' ? '需增加，建議增加運動時間5分鐘/運動量一組一次，直到有明顯的疲勞後停止' : '需減少，減少十分鐘/兩組運動時間')}</span>
+                </div>
+              `;
+            });
+          }
+          
+          container.innerHTML += `
+            <div class="history-card" data-id="${plan.id}" data-origin-weight="${safeWeight}">
+              <div class="plan-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; width: 100%; position: relative;">
+                <div class="plan-title-container" style="flex: 1; min-width: 0; display: flex; align-items: center; ">
+                  <strong class="plan-title" style="font-size: 18px; color: #333; white-space: nowrap; margin-right: auto;">${displayName}</strong>
+                  <button class="edit-name-btn" title="重新命名" style="background: none; border: none; cursor: pointer; font-size: 16px; margin-left: 8px; width: auto; margin-bottom: 0; padding: 4px;">✏️</button>
+                  <button class="delete-plan-btn" title="刪除整份計畫" style="background: none; border: none; cursor: pointer; font-size: 16px; margin-left: 8px; width: auto; margin-bottom: 0; padding: 4px;">🗑️</button>
+                </div>
+                <div class="plan-edit-container hidden" style="flex: 1; display: flex; gap: 5px; align-items: center; min-width: 0;">
+                    <input type="text" class="plan-name-input" value="${displayName}" style="margin: 0; padding: 6px; flex: 1; min-width: 0;">
+                    <button class="save-name-btn btn-secondary" style="width: auto; padding: 6px 12px; margin: 0; font-size: 14px; white-space: nowrap;">儲存</button>
+                    <button class="cancel-name-btn btn-danger" style="width: auto; padding: 6px 12px; margin: 0; font-size: 14px; white-space: nowrap;">取消</button>
+                </div>
+              </div>
+
+              <div style="background: #f0f8ff; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 14px; font-weight: bold;">📝 新增進度回報：</span>
+                <select class="report-time-select" style="margin: 0; padding: 4px; width: auto; flex: 1;">
+                  <option value="1週後">1週後</option>
+                  <option value="1個月後">1個月後</option>
+                  <option value="3個月後">3個月後</option>
+                  <option value="半年後">半年後</option>
+                </select>
+                <button class="trigger-report-form-btn btn-secondary" style="margin: 0; padding: 6px 12px; width: auto; font-size: 14px;">填寫</button>
+              </div>
+
+              <div class="report-form-container hidden" style="background: #fff3cd; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
+                <label>本次測量體重 (公斤)</label>
+                <input type="number" class="report-current-weight" placeholder="請輸入目前體重">
+                <label>運動量是否需要變更？</label>
+                <select class="report-change-activity">
+                  <option value="no">不需要</option>
+                  <option value="increase">需要增加運動量</option>
+                  <option value="decrease">需要減少運動量</option>
+                </select>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <button class="submit-card-report-btn btn-warning" style="flex: 1;">儲存回報</button>
+                  <button class="cancel-report-btn btn-danger" style="flex: 1;">取消</button>
+                </div>
+              </div>
+
+              <button class="toggle-content-btn" style="background: #eee; color: #333; padding: 6px 12px; width: 100%; font-size: 14px; margin-top: 5px;">展開計畫內容與歷史回報 🔽</button>
+
+              <div class="plan-content hidden">
+                <span style="font-size: 12px; color: gray;">計畫建立日期：${plan.dateString}</span>
+                <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;">${plan.planContent}</div>
+                <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+                
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 6px;">
+                  ${reportsHtml || "<p style='color: #666; font-size: 14px;'>尚無回報紀錄。</p>"}
+                </div>
+              </div>
+            </div>`;
+        });
+      } catch (error) { container.innerHTML = "載入歷史紀錄失敗：" + error.message; }
+    }
+
+    document.getElementById('historyContainer').addEventListener('click', async (e) => {
+      const card = e.target.closest('.history-card');
+      if (!card && !e.target.classList.contains('delete-report-btn') && !e.target.classList.contains('delete-plan-btn')) return;
+      const user = auth.currentUser;
+      const planId = card ? card.getAttribute('data-id') : null;
+
+      if (e.target.classList.contains('delete-plan-btn')) {
+        if(!confirm("確定要刪除這整份計畫嗎？（無法復原）")) return;
+        try {
+          await deleteDoc(doc(db, "users", user.uid, "plans", planId));
+          alert("計畫已刪除！"); loadSavedPlans(user.uid);
+        } catch (error) { alert("刪除失敗：" + error.message); }
+        return;
+      }
+
+      if (e.target.classList.contains('delete-report-btn')) {
+        if(!confirm("確定要刪除這筆回報紀錄嗎？")) return;
+        const reportIdToRemove = e.target.getAttribute('data-report-id');
+        try {
+          const planRef = doc(db, "users", user.uid, "plans", planId);
+          const docSnap = await getDoc(planRef);
+          let existingReports = docSnap.data().reports || [];
+          existingReports = existingReports.filter(rpt => rpt.id !== reportIdToRemove);
+          await updateDoc(planRef, { reports: existingReports });
+          alert("紀錄已刪除！"); loadSavedPlans(user.uid);
+        } catch (error) { alert("刪除失敗：" + error.message); }
+        return;
+      }
+
+      const originWeight = parseFloat(card.getAttribute('data-origin-weight'));
+
+      if (e.target.classList.contains('toggle-content-btn')) {
+        const contentEl = card.querySelector('.plan-content');
+        if (contentEl.classList.contains('hidden')) {
+          contentEl.classList.remove('hidden'); e.target.innerText = "收起計畫內容與歷史回報 🔼";
+        } else {
+          contentEl.classList.add('hidden'); e.target.innerText = "展開計畫內容與歷史回報 🔽";
+        }
+      }
+      if (e.target.classList.contains('edit-name-btn')) {
+        card.querySelector('.plan-title-container').classList.add('hidden');
+        card.querySelector('.plan-edit-container').classList.remove('hidden');
+      }
+      if (e.target.classList.contains('cancel-name-btn')) {
+        card.querySelector('.plan-title-container').classList.remove('hidden');
+        card.querySelector('.plan-edit-container').classList.add('hidden');
+      }
+      if (e.target.classList.contains('save-name-btn')) {
+        const newName = card.querySelector('.plan-name-input').value.trim();
+        if (!newName) return alert("名稱不能為空喔！");
+        try {
+          await updateDoc(doc(db, "users", user.uid, "plans", planId), { name: newName });
+          card.querySelector('.plan-title').innerText = newName;
+          card.querySelector('.plan-title-container').classList.remove('hidden');
+          card.querySelector('.plan-edit-container').classList.add('hidden');
+        } catch (error) { alert("重新命名失敗：" + error.message); }
+      }
+      if (e.target.classList.contains('trigger-report-form-btn')) {
+        card.querySelector('.report-form-container').classList.remove('hidden');
+      }
+      if (e.target.classList.contains('cancel-report-btn')) {
+        card.querySelector('.report-form-container').classList.add('hidden');
+        card.querySelector('.report-current-weight').value = "";
+      }
+      if (e.target.classList.contains('submit-card-report-btn')) {
+        const currentWeightVal = card.querySelector('.report-current-weight').value;
+        if (!currentWeightVal) return alert("請輸入目前體重！");
+        const currentWeight = parseFloat(currentWeightVal);
+        const changeActivity = card.querySelector('.report-change-activity').value;
+        const timeLabel = card.querySelector('.report-time-select').value;
+        let diff = currentWeight - originWeight;
+
+        const newReport = {
+          id: "rpt_" + new Date().getTime(),
+          timeLabel: timeLabel,
+          currentWeight: currentWeight,
+          diff: parseFloat(diff.toFixed(1)),
+          changeActivity: changeActivity,
+          dateString: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'})}`
+        };
+
+        try {
+          const planRef = doc(db, "users", user.uid, "plans", planId);
+          const docSnap = await getDoc(planRef);
+          const existingReports = docSnap.data().reports || [];
+          existingReports.push(newReport);
+          await updateDoc(planRef, { reports: existingReports });
+          alert(`「${timeLabel}」的成果回報已成功紀錄！請展開內容查看。`);
+          loadSavedPlans(user.uid); 
+        } catch (error) { alert("儲存回報失敗：" + error.message); }
+      }
+    });
+
+  </script>
+</body>
+</html>
+
